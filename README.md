@@ -59,7 +59,12 @@ Parameters (specified as one object passed into hot-shots):
 * `udsGracefulErrorHandling`: Used only when the protocol is `uds`. Boolean indicating whether to handle socket errors gracefully. Defaults to true.
 * `udsGracefulRestartRateLimit`: Used only when the protocol is `uds`. Time (ms) between re-creating the socket. Defaults to `1000`.
 * `closingFlushInterval`: Before closing, StatsD will check for inflight messages. Time (ms) between each check. Defaults to `50`.
-* `udpSocketOptions`: Used only when the protocol is `uds`. Specify the options passed into dgram.createSocket(). Defaults to `{ type: 'udp4' }`
+* `udpSocketOptions`: Used only when the protocol is `udp`. Specify the options passed into dgram.createSocket(). Defaults to `{ type: 'udp4' }`
+* `udsRetryOptions`: Used only when the protocol is `uds`. Retry/backoff options for UDS sends:
+  * `retries`: Number of retry attempts for failed packet sends. Defaults to `3`.
+  * `retryDelayMs`: Initial delay in milliseconds before retrying a failed packet send. Defaults to `100`.
+  * `maxRetryDelayMs`: Maximum delay in milliseconds between retry attempts (caps exponential backoff). Defaults to `1000`.
+  * `backoffFactor`: Exponential backoff multiplier for retry delays. Defaults to `2`.
 
 ### StatsD methods
 All StatsD methods other than `event`, `close`, and `check` have the same API:
@@ -136,6 +141,23 @@ The check method has the following API:
 
   // Check: sends a service check (DataDog only)
   client.check('service.up', client.CHECKS.OK, { hostname: 'host-1' }, ['foo', 'bar'])
+```
+
+### UDS (Unix Domain Socket) with Retry Support
+
+```javascript
+  // UDS client with automatic retry on packet failures
+  var client = new StatsD({
+      protocol: 'uds',
+      path: '/var/run/datadog/dsd.socket',
+      udsRetryOptions: {
+        // Retry options (all optional, showing defaults):
+        // retries: 3,           // Number of retry attempts (set to 0 to disable)
+        // retryDelayMs: 100,    // Initial delay in ms
+        // maxRetryDelayMs: 1000,// Maximum delay cap in ms
+        // backoffFactor: 2      // Exponential backoff multiplier
+      }
+  });
 
   // Incrementing multiple items
   client.increment(['these', 'are', 'different', 'stats']);
